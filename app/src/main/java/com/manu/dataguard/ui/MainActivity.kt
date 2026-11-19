@@ -86,6 +86,11 @@ class MainActivity : Activity() {
         tabLive = Button(this).apply { text = "Live feed"; setOnClickListener { selectTab(true) } }
         tabs.addView(tabApps, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         tabs.addView(tabLive, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        val mapButton = Button(this).apply {
+            text = "Map"
+            setOnClickListener { startActivity(Intent(this@MainActivity, MapActivity::class.java)) }
+        }
+        tabs.addView(mapButton, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         root.addView(tabs)
 
         empty = text("", 14f).apply { alpha = 0.7f; setPadding(0, dp(24), 0, 0) }
@@ -250,6 +255,8 @@ Orange = a known tracker, ad network, data broker or fingerprinting company.
 Red = blocked.
 
 Tap an app to see every destination it contacted and to cut off its internet entirely. Tap any destination to block or allow it.
+
+The Map shows which countries those servers are in, worked out on your phone from a built-in database (IP geolocation by DB-IP.com, CC BY 4.0; map outlines from Natural Earth). A server's country is where it's registered — a big company may answer from a data centre near you while the data ends up elsewhere.
 
 Limits, honestly:
 • It shows WHO an app talks to, not WHAT it sends — the contents are encrypted.

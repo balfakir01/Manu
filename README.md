@@ -12,6 +12,9 @@ third-party libraries.
 - **Apps tab**: every app that has gone online, how many destinations it contacted, how many
   are known trackers, and which tracker companies they belong to.
 - **Live feed**: lookups as they happen, including from apps running in the background.
+- **Map**: a world map with a line from your country to every country your data went to.
+  Red means trackers were involved. Tap a country to see the servers and apps behind it.
+  Each app also has its own map.
 - **Per-app screen**: every domain that app contacted, with a switch to block all of its internet.
 - **Tap any destination** to block it for that app, block it in every app, or allow it.
 - **One switch** to block about 130 known tracking and advertising domains in all apps
@@ -31,6 +34,15 @@ captures only those lookups:
 
 Your actual traffic (web pages, videos and so on) does **not** go through the tunnel. It
 travels exactly as it did before.
+
+## How the map works
+
+When a lookup is allowed, Data Guard reads the server address from the answer and finds its
+country in an IP-to-country database bundled inside the app. Nothing is sent to a location
+service. A server's country is where its address is registered. Big companies answer from data
+centres near you, so a "local" server can still belong to a company abroad. Blocked lookups never
+get an address, so the map shows them as "never left your phone". Only IPv4 addresses are
+located for now.
 
 ## Honest limitations
 
@@ -79,3 +91,28 @@ The APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 | `data/EventStore.kt` | 7-day lookup history in SQLite on the phone |
 | `ui/MainActivity.kt` | Apps list, live feed, on/off |
 | `ui/AppDetailActivity.kt` | Per-app destinations and the "block all internet" switch |
+| `ui/MapActivity.kt`, `ui/WorldMapView.kt` | The "where your data goes" map and country list |
+| `data/Geo.kt` | Offline IP-to-country lookup and map outlines |
+| `tools/build_geo_assets.py` | Rebuilds `app/src/main/assets/geoip4.bin` and `world.bin` |
+
+## Rebuilding the map data
+
+The two files in `app/src/main/assets/` are generated from npm packages:
+
+```bash
+npm pack @ip-location-db/dbip-country world-atlas i18n-iso-countries
+```
+
+Unpack each `.tgz` into its own folder, then:
+
+```bash
+python3 tools/build_geo_assets.py dbip/package/dbip-country-ipv4-num.csv atlas/package iso/package/codes.json app/src/main/assets
+```
+
+## Data credits
+
+- IP geolocation by [DB-IP](https://db-ip.com), "IP to Country Lite", licensed under
+  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- Country outlines from [Natural Earth](https://www.naturalearthdata.com) (public domain), via
+  the `world-atlas` package.
+- ISO country codes from the `i18n-iso-countries` package (MIT).

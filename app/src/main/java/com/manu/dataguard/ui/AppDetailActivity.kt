@@ -77,6 +77,17 @@ class AppDetailActivity : Activity() {
         root.addView(cut, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         root.addView(text("Restart the app afterwards so it can't reuse addresses it already looked up.", 12f).apply { alpha = 0.6f })
 
+        root.addView(android.widget.Button(this).apply {
+            text = "Show where this app sends data on a map"
+            setOnClickListener {
+                startActivity(
+                    android.content.Intent(this@AppDetailActivity, MapActivity::class.java)
+                        .putExtra(MapActivity.EXTRA_PKG, pkg)
+                        .putExtra(MapActivity.EXTRA_LABEL, label)
+                )
+            }
+        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+
         summary = text("", 13f).apply { setPadding(0, dp(12), 0, dp(4)); alpha = 0.8f }
         root.addView(summary)
         root.addView(text("Tap a destination to block or allow it.", 12f).apply { alpha = 0.6f })

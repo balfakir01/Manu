@@ -30,6 +30,10 @@
             android:name=".ui.AppDetailActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".ui.MapActivity"
+            android:exported="false" />
+
         <service
             android:name=".vpn.GuardVpnService"
             android:exported="true"

@@ -78,6 +78,40 @@ object Packets {
         return r
     }
 
+    /** The first IPv4 address (A record) in a DNS answer, or null if there isn't one. */
+    fun firstIpv4(dns: ByteArray): ByteArray? {
+        if (dns.size < 12) return null
+        val questions = u16(dns, 4)
+        val answers = u16(dns, 6)
+        var i = 12
+        repeat(questions) {
+            i = skipName(dns, i) ?: return null
+            i += 4
+        }
+        repeat(answers) {
+            i = skipName(dns, i) ?: return null
+            if (i + 10 > dns.size) return null
+            val type = u16(dns, i)
+            val len = u16(dns, i + 8)
+            i += 10
+            if (i + len > dns.size) return null
+            if (type == 1 && len == 4) return dns.copyOfRange(i, i + 4)
+            i += len                                                     // e.g. a CNAME; keep looking
+        }
+        return null
+    }
+
+    private fun skipName(dns: ByteArray, start: Int): Int? {
+        var i = start
+        while (i < dns.size) {
+            val l = dns[i].toInt() and 0xFF
+            if (l == 0) return i + 1
+            if ((l and 0xC0) == 0xC0) return i + 2                       // compression pointer ends the name
+            i += l + 1
+        }
+        return null
+    }
+
     /** Wraps a DNS answer in IPv4+UDP headers addressed back to the app that asked. */
     fun wrapAnswer(q: DnsQuery, payload: ByteArray): ByteArray {
         val total = 28 + payload.size

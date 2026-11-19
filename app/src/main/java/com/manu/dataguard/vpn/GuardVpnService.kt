@@ -20,6 +20,7 @@ import com.manu.dataguard.R
 import com.manu.dataguard.data.AppResolver
 import com.manu.dataguard.data.Event
 import com.manu.dataguard.data.EventStore
+import com.manu.dataguard.data.Geo
 import com.manu.dataguard.data.Rules
 import com.manu.dataguard.data.Trackers
 import com.manu.dataguard.ui.MainActivity
@@ -65,6 +66,7 @@ class GuardVpnService : VpnService() {
     private lateinit var rules: Rules
     private lateinit var apps: AppResolver
     private lateinit var connectivity: ConnectivityManager
+    @Volatile private var geo: Geo? = null
 
     @Volatile private var upstreamCache: List<InetAddress> = emptyList()
     @Volatile private var upstreamCachedAt = 0L
@@ -76,6 +78,10 @@ class GuardVpnService : VpnService() {
         rules = Rules.get(this)
         apps = AppResolver.get(this)
         connectivity = getSystemService(ConnectivityManager::class.java)
+        // Loaded off the main thread; until it's ready, lookups are recorded without a country.
+        Thread {
+            geo = try { Geo.get(this) } catch (e: Exception) { Log.e(TAG, "geo db", e); null }
+        }.start()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -172,9 +178,12 @@ class GuardVpnService : VpnService() {
         val app = apps.resolve(uid)
         val tracker = Trackers.lookup(q.name)
         val decision = rules.decide(app.pkg, q.name, tracker != null)
-        val answer = if (decision.blocked) Packets.blockedAnswer(q) else forward(q.dns) ?: Packets.failureAnswer(q)
+        val upstream = if (decision.blocked) null else forward(q.dns)
+        val answer = if (decision.blocked) Packets.blockedAnswer(q) else upstream ?: Packets.failureAnswer(q)
         write(Packets.wrapAnswer(q, answer))
         if (q.name.isNotEmpty()) {
+            val ip = upstream?.let { Packets.firstIpv4(it) }
+            val country = ip?.let { geo?.country(it) }
             store.record(
                 Event(
                     ts = System.currentTimeMillis(),
@@ -184,6 +193,8 @@ class GuardVpnService : VpnService() {
                     tracker = tracker?.describe(),
                     blocked = decision.blocked,
                     reason = decision.reason,
+                    ip = ip?.joinToString(".") { (it.toInt() and 0xFF).toString() },
+                    country = country,
                 )
             )
         }
